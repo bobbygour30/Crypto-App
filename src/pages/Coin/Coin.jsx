@@ -8,66 +8,60 @@ const Coin = () => {
   const [coinData, setCoinData] = useState(null);
   const [historicalData, setHistoricalData] = useState(null);
   const { currency } = useContext(CoinContext);
-  // const ApiKey = import.meta.env.VITE_API_KEY;
+
+  const fetchWithRetry = async (url, retries = 3, delay = 1000) => {
+    try {
+      const response = await fetch(url);
+      if (!response.ok) {
+        if (response.status === 429 && retries > 0) {
+          console.warn(`Rate limited. Retrying in ${delay}ms...`);
+          await new Promise(resolve => setTimeout(resolve, delay));
+          return fetchWithRetry(url, retries - 1, delay * 2);
+        }
+        throw new Error(`Failed to fetch: ${response.statusText}`);
+      }
+      return await response.json();
+    } catch (error) {
+      throw error;
+    }
+  };
 
   const fetchCoinData = async () => {
-    const options = {
-      method: "GET",
-      headers: {
-        accept: "application/json",
-        "x-cg-demo-api-key": "CG-iDG9PETwHtJvEXyjoEejEj6y",
-      },
-    };
-
     try {
-      const response = await fetch(
-        `https://api.coingecko.com/api/v3/coins/${coinId}`,
-        options
+      const data = await fetchWithRetry(
+        `https://api.coingecko.com/api/v3/coins/${coinId}`
       );
-      if (!response.ok) {
-        throw new Error("Failed to fetch coin data");
-      }
-      const data = await response.json();
       setCoinData(data);
     } catch (err) {
-      console.error("Error fetching coin data:", err);
+      console.error("Error fetching coin data:", err.message);
     }
   };
 
   const fetchHistoricalData = async () => {
-    const options = {
-      method: "GET",
-      headers: {
-        accept: "application/json",
-        "x-cg-demo-api-key": "CG-iDG9PETwHtJvEXyjoEejEj6y",
-      },
-    };
-
     try {
-      const response = await fetch(
-        `https://api.coingecko.com/api/v3/coins/${coinId}/market_chart?vs_currency=${currency.name}&days=10&interval=daily`,
-        options
+      const data = await fetchWithRetry(
+        `https://api.coingecko.com/api/v3/coins/${coinId}/market_chart?vs_currency=${currency.name}&days=10&interval=daily`
       );
-      if (!response.ok) {
-        throw new Error("Failed to fetch historical data");
-      }
-      const data = await response.json();
       setHistoricalData(data);
     } catch (err) {
-      console.error("Error fetching historical data:", err);
+      console.error("Error fetching historical data:", err.message);
     }
   };
 
   useEffect(() => {
-    fetchCoinData();
-    fetchHistoricalData();
+    const debounceFetch = setTimeout(() => {
+      fetchCoinData();
+      fetchHistoricalData();
+    }, 500); // Adjust the delay as necessary
+
+    return () => clearTimeout(debounceFetch);
   }, [coinId, currency]);
 
   if (coinData && historicalData) {
     return (
       <div className="px-0 pt-5 pb-5 mt-10">
         <div className="flex flex-col items-center gap-5 mx-24 my-auto mb-12">
-          <img className="max-w-24" src={coinData.image.large} alt="" />
+          <img className="max-w-24" src={coinData.image.large} alt={coinData.name} />
           <p className="text-xl font-medium">
             <b className="text-4xl font-medium">{coinData.name}</b>
           </p>

@@ -10,19 +10,22 @@ const Home = () => {
   const inputHandler = (e) => {
     setInput(e.target.value);
     if (e.target.value === "") {
-      setDisplayCoin(allcoin);
+      setDisplayCoin(Array.isArray(allcoin) ? allcoin : []);
     }
   };
+
   const searchHandler = async (e) => {
     e.preventDefault();
-    const coins = Object.values(allcoin).filter((item) => {
-      return item.name.toLowerCase().includes(input.toLowerCase());
-    });
-    setDisplayCoin(coins);
+    if (Array.isArray(allcoin)) {
+      const coins = allcoin.filter((item) => {
+        return item.name.toLowerCase().includes(input.toLowerCase());
+      });
+      setDisplayCoin(coins);
+    }
   };
 
   useEffect(() => {
-    setDisplayCoin(allcoin);
+    setDisplayCoin(Array.isArray(allcoin) ? allcoin : []);
   }, [allcoin]);
 
   return (
@@ -49,9 +52,10 @@ const Home = () => {
             list="coinlist"
           />
           <datalist id="coinlist">
-            {allcoin.map((item, index) => (
-              <option key={index} value={item.name} />
-            ))}
+            {Array.isArray(allcoin) &&
+              allcoin.map((item, index) => (
+                <option key={index} value={item.name} />
+              ))}
           </datalist>
           <button
             className="border-none bg-[#1b95e6] text-white text-lg p-2 pl-6 pr-6 rounded-full w-full sm:w-auto"
@@ -69,35 +73,39 @@ const Home = () => {
           <p className="text-center">24H Change</p>
           <p className="text-right">Market Cap</p>
         </div>
-        {displayCoin.slice(0, 10).map((item, index) => (
-          <Link
-            to={`/coin/${item.id}`}
-            className="last:border-none grid grid-cols-[0.5fr_2fr_1fr_1fr_1.5fr] sm:grid-cols-[1fr_3fr_1.5fr_1.5fr_2fr] p-[15px] px-[20px] items-center border-b-2 border-[#3c3c3c] text-sm sm:text-base"
-            key={index}
-          >
-            <p>{item.market_cap_rank}</p>
-            <div className="flex items-center gap-2">
-              <img className="w-6 sm:w-10" src={item.image} alt="" />
-              <p>{item.name}</p>
-            </div>
-            <p>
-              {currency.symbol}
-              {item.current_price.toLocaleString()}
-            </p>
-            <p
-              className={
-                item.price_change_percentage_24h > 0
-                  ? "text-green-500 text-center"
-                  : "text-red-500 text-center"
-              }
+        {Array.isArray(displayCoin) &&
+          displayCoin.slice(0, 10).map((item, index) => (
+            <Link
+              to={`/coin/${item.id}`}
+              className="last:border-none grid grid-cols-[0.5fr_2fr_1fr_1fr_1.5fr] sm:grid-cols-[1fr_3fr_1.5fr_1.5fr_2fr] p-[15px] px-[20px] items-center border-b-2 border-[#3c3c3c] text-sm sm:text-base"
+              key={index}
             >
-              {Math.floor(item.price_change_percentage_24h * 100) / 100}
-            </p>
-            <p className="text-right">
-              {currency.symbol} {item.market_cap.toLocaleString()}
-            </p>
-          </Link>
-        ))}
+              <p>{item.market_cap_rank}</p>
+              <div className="flex items-center gap-2">
+                <img className="w-6 sm:w-10" src={item.image} alt="" />
+                <p>{item.name}</p>
+              </div>
+              <p>
+                {currency.symbol}
+                {item.current_price ? item.current_price.toLocaleString() : ""}
+              </p>
+              <p
+                className={
+                  item.price_change_percentage_24h > 0
+                    ? "text-green-500 text-center"
+                    : "text-red-500 text-center"
+                }
+              >
+                {item.price_change_percentage_24h
+                  ? Math.floor(item.price_change_percentage_24h * 100) / 100
+                  : ""}
+              </p>
+              <p className="text-right">
+                {currency.symbol}{" "}
+                {item.market_cap ? item.market_cap.toLocaleString() : ""}
+              </p>
+            </Link>
+          ))}
       </div>
     </div>
   );

@@ -1,52 +1,54 @@
-import { createContext, useEffect, useState } from "react";
+import React, { createContext, useState, useEffect } from "react";
 
 export const CoinContext = createContext();
 
-const CoinContextProvider = (props) => {
+const CoinProvider = ({ children }) => {
   const [allcoin, setAllcoin] = useState([]);
-  const [currency, setCurrency] = useState({
-    name: "usd",
-    symbol: "$",
-  });
+  const [currency, setCurrency] = useState({ name: "usd", symbol: "$" });
+  const ApiKey = import.meta.env.VITE_API_KEY; // If needed
 
-  useEffect(() => {
-    const fetchAllcoins = async () => {
-      const ApiKey = import.meta.env.VITE_API_KEY;
-      const options = {
-        method: "GET",
-        headers: {
-          accept: "application/json",
-          "x-cg-demo-api-key": {ApiKey},
-        },
-      };
-
-      try {
-        const response = await fetch(
-          `https://api.coingecko.com/api/v3/coins/markets?vs_currency=${currency.name}`,
-          options
-        );
-        const data = await response.json();
-        setAllcoin(data);
-      } catch (err) {
-        console.error(err);
-        setAllcoin([]); // Fallback to an empty array in case of error
+  const fetchWithRetry = async (url, retries = 3, delay = 1000) => {
+    try {
+      const response = await fetch(url);
+      if (!response.ok) {
+        if (response.status === 429 && retries > 0) {
+          console.warn(`Rate limited. Retrying in ${delay}ms...`);
+          await new Promise((resolve) => setTimeout(resolve, delay));
+          return fetchWithRetry(url, retries - 1, delay * 2);
+        }
+        throw new Error(`Failed to fetch: ${response.statusText}`);
       }
-    };
-
-    fetchAllcoins();
-  }, [currency]);
-
-  const contextValue = {
-    allcoin,
-    currency,
-    setCurrency,
+      const text = await response.text();
+      try {
+        return JSON.parse(text);
+      } catch (err) {
+        throw new Error(`Unexpected response format: ${text}`);
+      }
+    } catch (error) {
+      throw error;
+    }
   };
 
+  const fetchAllCoins = async () => {
+    try {
+      const data = await fetchWithRetry(
+        `https://api.coingecko.com/api/v3/coins/markets?vs_currency=${currency.name}`
+      );
+      setAllcoin(data);
+    } catch (err) {
+      console.error("Error fetching coin data:", err.message);
+    }
+  };
+
+  useEffect(() => {
+    fetchAllCoins();
+  }, [currency]);
+
   return (
-    <CoinContext.Provider value={contextValue}>
-      {props.children}
+    <CoinContext.Provider value={{ allcoin, currency, setCurrency }}>
+      {children}
     </CoinContext.Provider>
   );
 };
 
-export default CoinContextProvider;
+export default CoinProvider;
