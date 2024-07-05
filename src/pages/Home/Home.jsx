@@ -15,7 +15,7 @@ const Home = () => {
   };
   const searchHandler = async (e) => {
     e.preventDefault();
-    const coins = await allcoin.filter((item) => {
+    const coins = Object.values(allcoin).filter((item) => {
       return item.name.toLowerCase().includes(input.toLowerCase());
     });
     setDisplayCoin(coins);
@@ -29,7 +29,7 @@ const Home = () => {
     <div className="p-5 pb-20 md:p-10 lg:p-20">
       <div className="max-w-[2000px] mt-16 flex flex-col items-center text-center gap-12">
         <h1 className="font-bold text-3xl md:text-5xl lg:text-7xl">
-          CryptoNest 
+          CryptoNest
         </h1>
         <p className="text-base sm:text-lg">
           Welcome to the world's largest cryptocurrency marketplace. Sign up to
